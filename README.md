@@ -1,47 +1,210 @@
-# Svelte + TS + Vite
+# Timetable Frontend
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Sistema de gestión de horarios construido con **Svelte 5 (runes)**, **Tailwind CSS v4**, y **@tanstack/svelte-query v6**.
 
-## Recommended IDE Setup
+## 🚀 Inicio Rápido
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+```bash
+# Instalar dependencias
+pnpm install
 
-## Need an official Svelte framework?
+# Iniciar servidor de desarrollo
+pnpm dev
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+# Build para producción
+pnpm build
 
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+# Previsualizar build
+pnpm preview
 ```
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── lib/
+│   ├── api/                    # Servicios de API
+│   │   ├── http.ts             # 🔑 Wrapper principal de fetch
+│   │   ├── teachers.api.ts     # API de docentes
+│   │   ├── classrooms.api.ts   # API de aulas
+│   │   ├── courses.api.ts      # API de cursos
+│   │   └── index.ts            # Re-exports
+│   │
+│   ├── components/             # Componentes reutilizables
+│   │   ├── Navbar.svelte       # 🧭 Navegación principal
+│   │   └── index.ts
+│   │
+│   ├── queries/                # Hooks de TanStack Query
+│   │   ├── useTeachers.ts      # Query de docentes
+│   │   ├── useTeachersMutations.ts  # Mutations con optimistic updates
+│   │   ├── useClassrooms.ts
+│   │   ├── useClassroomsMutations.ts
+│   │   ├── useCourses.ts
+│   │   ├── useCoursesMutations.ts
+│   │   └── index.ts
+│   │
+│   ├── query/                  # Configuración de Query Client
+│   │   ├── client.ts           # 🔧 QueryClient configurado
+│   │   ├── keys.ts             # Factory de query keys
+│   │   └── index.ts
+│   │
+│   └── types/                  # Tipos TypeScript
+│       └── index.ts            # 📦 DTOs y tipos de API
+│
+├── routes/                     # Páginas de la aplicación
+│   ├── +layout.svelte          # 🎯 Layout con QueryClientProvider
+│   ├── +page.svelte            # Página de inicio
+│   ├── teachers/+page.svelte   # CRUD de docentes
+│   ├── classrooms/+page.svelte # CRUD de aulas
+│   └── courses/+page.svelte    # CRUD de cursos
+│
+├── app.css                     # Estilos globales + Tailwind
+└── main.ts                     # Entry point
+```
+
+## 🔑 Puntos Clave
+
+### 1. API Wrapper (`src/lib/api/http.ts`)
+
+```typescript
+// Valida automáticamente la respuesta { success, message, data }
+// Lanza ApiError con message y status en caso de error
+const teachers = await http.get<Teacher[]>('/teachers');
+```
+
+**Características:**
+- ✅ Valida forma de respuesta `{ success, message, data }`
+- ✅ Manejo de errores centralizado con `ApiError`
+- ✅ Timeout configurable (default: 10s)
+- ✅ Base URL por variable de entorno `VITE_API_URL`
+
+### 2. Query Client (`src/lib/query/client.ts`)
+
+```typescript
+// Configuración optimizada:
+// - staleTime: 2 minutos (evita re-fetches innecesarios)
+// - gcTime: 10 minutos (cache en memoria)
+// - refetchOnWindowFocus: false
+// - retry: 1 intento
+```
+
+### 3. Query Keys (`src/lib/query/keys.ts`)
+
+```typescript
+// Factory centralizado para consistencia
+queryKeys.teachers.all     // ['teachers']
+queryKeys.teachers.detail(1) // ['teachers', 1]
+```
+
+### 4. Hooks de Queries (`src/lib/queries/`)
+
+```typescript
+// Sintaxis thunk para reactividad
+const teachers = useTeachers();
+const teacher = useTeacher(() => selectedId);
+
+// En template:
+{#if $teachers.isPending}
+  <Spinner />
+{:else if $teachers.data}
+  {#each $teachers.data as teacher}
+    ...
+  {/each}
+{/if}
+```
+
+### 5. Mutations con Optimistic Updates
+
+```typescript
+const createTeacher = useCreateTeacher();
+
+// Automáticamente:
+// 1. Cancela queries en vuelo
+// 2. Guarda snapshot del estado
+// 3. Aplica update optimista
+// 4. Hace rollback si hay error
+// 5. Invalida queries al terminar
+```
+
+### 6. Navbar (`src/lib/components/Navbar.svelte`)
+
+- 🎨 Diseño responsive con Tailwind
+- ⏳ Spinner de loading global con `useIsFetching`
+- 📱 Menú móvil colapsable
+- 🎯 Estado manejado con runes (`$state`)
+
+## ⚙️ Configuración
+
+### Variables de Entorno
+
+Crear `.env.local`:
+
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+### Formato de Respuesta del Backend
+
+Todas las respuestas deben seguir:
+
+```json
+{
+  "success": true,
+  "message": "Operación exitosa",
+  "data": { ... }
+}
+```
+
+En caso de error:
+
+```json
+{
+  "success": false,
+  "message": "Descripción del error",
+  "data": null
+}
+```
+
+## 📦 Recursos CRUD
+
+| Recurso    | Endpoint      | Campos                                          |
+|------------|---------------|-------------------------------------------------|
+| Teachers   | `/teachers`   | `id`, `name`, `lastname`                        |
+| Classrooms | `/classrooms` | `id`, `code`, `floor`, `capacity`               |
+| Courses    | `/courses`    | `id`, `code`, `name`, `abreviation`, `color`, `id_teacher` |
+
+## 🆕 Agregar un Nuevo Recurso
+
+1. **Crear tipo** en `src/lib/types/index.ts`
+2. **Crear API** en `src/lib/api/[resource].api.ts`
+3. **Agregar query keys** en `src/lib/query/keys.ts`
+4. **Crear hooks** en `src/lib/queries/use[Resource].ts`
+5. **Crear página** en `src/routes/[resource]/+page.svelte`
+
+## 🎯 Buenas Prácticas Implementadas
+
+- ✅ **Svelte 5 Runes**: `$state`, `$props` en lugar de stores legacy
+- ✅ **TypeScript estricto**: Tipos definidos para todo
+- ✅ **Optimistic updates**: UX instantánea en mutaciones
+- ✅ **Stale-while-revalidate**: Cache inteligente
+- ✅ **Query keys factory**: Consistencia y fácil invalidación
+- ✅ **Centralización de errores**: `ApiError` class
+- ✅ **Componentes puros**: Mínima lógica en templates
+- ✅ **Responsive design**: Mobile-first con Tailwind
+
+## 📜 Scripts Disponibles
+
+| Comando          | Descripción                    |
+|------------------|--------------------------------|
+| `pnpm dev`       | Servidor de desarrollo         |
+| `pnpm build`     | Build para producción          |
+| `pnpm preview`   | Previsualizar build            |
+| `pnpm check`     | Type-checking con svelte-check |
+
+## 🛠️ Stack Técnico
+
+- **Svelte 5** con Runes
+- **Tailwind CSS v4**
+- **@tanstack/svelte-query v6**
+- **TypeScript**
+- **Vite**
